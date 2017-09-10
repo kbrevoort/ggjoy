@@ -137,7 +137,22 @@ StatJoy <- ggproto("StatJoy", Stat,
     }
     panel_id <- as.numeric(panel)
 
-    d <- density(data$x, bw = bandwidth[panel_id], from = from[panel_id], to = to[panel_id], na.rm = TRUE)
+    # The weights need to sum to 1 in the density function. This ensures that the
+    # weights sum to 1 within each group.
+    if (is.null(data$weight)) {
+      # These weights sum to 1. Could also set to NULL which is the default
+      # for weights in the density function.
+      w1 <- rep(1 / length(data$x), length(data$x))
+    } else {
+      if (!all((data$weight >= 0) & is.finite(data$weight)))
+        stop('Invalid weights supplied to geom_joy')
+
+      w1 <- data$weight / sum(data$weight, na.rm = TRUE)
+    }
+
+    d <- density(data$x, bw = bandwidth[panel_id],
+                 from = from[panel_id], to = to[panel_id],
+                 weights = w1, na.rm = TRUE)
 
     if(is.null(calc_ecdf)) calc_ecdf <- FALSE
 
